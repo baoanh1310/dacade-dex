@@ -16,7 +16,7 @@
 }
 
 .image {
-  width: 70%;
+  width: 100%;
   height: 50%;
   margin-left: 20%;
 }
@@ -43,18 +43,18 @@
 
 .button {
   border-radius: 4px;
-  background-color: purple;
+  background-color: blue;
   border: none;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 18px;
   padding: 5px;
-  width: 100px;
+  width: 140px;
   cursor: pointer;
   margin: 2%;
 }
 
 .inputDiv {
-  width: 200px;
+  width: 480px;
   height: 100%;
   padding: 1%;
   margin: 2%;
@@ -76,9 +76,9 @@
   background-color: blue;
   border: none;
   color: #ffffff;
-  font-size: 15px;
+  font-size: 18px;
   padding: 5px;
-  width: 100px;
+  width: 140px;
   cursor: pointer;
   margin: 2%;
 }

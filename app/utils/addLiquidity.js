@@ -41,7 +41,7 @@ export const calculateIcebear = async (
   celoBalanceContract,
   icebearTokenReserve
 ) => {
-  const _addCeloAmountWei = utils.parseCelo(_addCelo);
+  const _addCeloAmountWei = utils.parseEther(_addCelo);
   const icebearTokenAmount = _addCeloAmountWei
     .mul(icebearTokenReserve)
     .div(celoBalanceContract);

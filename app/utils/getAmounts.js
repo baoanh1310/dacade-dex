@@ -6,14 +6,8 @@ import {
   TOKEN_CONTRACT_ADDRESS,
 } from "../constants";
 
-/**
- * getCeloBalance: Retrieves the ether balance of the user or the contract
- */
 export const getCeloBalance = async (provider, address, contract = false) => {
   try {
-    // If the caller has set the `contract` boolean to true, retrieve the balance of
-    // ether in the `exchange contract`, if it is set to false, retrieve the balance
-    // of the user's address
     if (contract) {
       const balance = await provider.getBalance(EXCHANGE_CONTRACT_ADDRESS);
       return balance;
@@ -27,10 +21,6 @@ export const getCeloBalance = async (provider, address, contract = false) => {
   }
 };
 
-/**
- * getIcebearTokensBalance: Retrieves the Crypto Dev tokens in the account
- * of the provided `address`
- */
 export const getIcebearTokensBalance = async (provider, address) => {
   try {
     const tokenContract = new Contract(
@@ -38,17 +28,13 @@ export const getIcebearTokensBalance = async (provider, address) => {
       TOKEN_CONTRACT_ABI,
       provider
     );
-    const balanceOfCryptoDevTokens = await tokenContract.balanceOf(address);
-    return balanceOfCryptoDevTokens;
+    const balanceOfIcebearTokens = await tokenContract.balanceOf(address);
+    return balanceOfIcebearTokens;
   } catch (err) {
     console.error(err);
   }
 };
 
-/**
- * getLPTokensBalance: Retrieves the amount of LP tokens in the account
- * of the provided `address`
- */
 export const getLPTokensBalance = async (provider, address) => {
   try {
     const exchangeContract = new Contract(
@@ -63,10 +49,6 @@ export const getLPTokensBalance = async (provider, address) => {
   }
 };
 
-/**
- * getReserveOfIcebearTokens: Retrieves the amount of Icebear tokens in the
- * exchange contract address
- */
 export const getReserveOfIcebearTokens = async (provider) => {
   try {
     const exchangeContract = new Contract(

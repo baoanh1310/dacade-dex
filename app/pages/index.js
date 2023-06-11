@@ -15,6 +15,7 @@ import {
   removeLiquidity,
 } from "../utils/removeLiquidity";
 import { swapTokens, getAmountOfTokensReceivedFromSwap } from "../utils/swap";
+import { faucet } from "../utils/faucet";
 
 export default function Home() {
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ export default function Home() {
   const [tokenToBeReceivedAfterSwap, settokenToBeReceivedAfterSwap] = useState(
     zero
   );
-  const [ethSelected, setEthSelected] = useState(true);
+  const [celoSelected, setCeloSelected] = useState(true);
   const web3ModalRef = useRef();
   const [walletConnected, setWalletConnected] = useState(false);
 
@@ -69,7 +70,7 @@ export default function Home() {
           signer,
           swapAmountWei,
           tokenToBeReceivedAfterSwap,
-          ethSelected
+          celoSelected
         );
         setLoading(false);
         await getAmounts();
@@ -82,6 +83,19 @@ export default function Home() {
     }
   };
 
+  const _faucet = async () => {
+    try {
+      const signer = await getProviderOrSigner(true);
+      setLoading(true);
+      await faucet(signer);
+      setLoading(false);
+      await getAmounts();
+    } catch (err) {
+      console.error(err);
+      setLoading(false);
+    }
+  }
+
   const _getAmountOfTokensReceivedFromSwap = async (_swapAmount) => {
     try {
       const _swapAmountWEI = utils.parseEther(_swapAmount.toString());
@@ -91,7 +105,7 @@ export default function Home() {
         const amountOfTokens = await getAmountOfTokensReceivedFromSwap(
           _swapAmountWEI,
           provider,
-          ethSelected,
+          celoSelected,
           _celoBalance,
           reservedIcebear
         );
@@ -225,11 +239,11 @@ export default function Home() {
           <div className={styles.description}>
             You have:
             <br />
-            {round(utils.formatEther(icebearBalance))} Icebear Tokens
+            {round(utils.formatEther(icebearBalance))} ICB Tokens
             <br />
             {round(utils.formatEther(celoBalance))} CELO
             <br />
-            {round(utils.formatEther(lpBalance))} Icebear LP tokens
+            {round(utils.formatEther(lpBalance))}  ICB-LP tokens
           </div>
           <div>
             {utils.parseEther(reservedIcebear.toString()).eq(zero) ? (
@@ -242,7 +256,7 @@ export default function Home() {
                 />
                 <input
                   type="number"
-                  placeholder="Amount of Icebear tokens"
+                  placeholder="Amount of ICB"
                   onChange={(e) =>
                     setAddIcebearTokens(
                       BigNumber.from(utils.parseEther(e.target.value || "0"))
@@ -271,8 +285,7 @@ export default function Home() {
                   className={styles.input}
                 />
                 <div className={styles.inputDiv}>
-                  {`You will need ${utils.formatEther(addIcebearTokens)} Icebear
-                  Tokens`}
+                  {`You will need ${round(utils.formatEther(addIcebearTokens))} ICB`}
                 </div>
                 <button className={styles.button1} onClick={_addLiquidity}>
                   Add
@@ -290,7 +303,7 @@ export default function Home() {
                 className={styles.input}
               />
               <div className={styles.inputDiv}>
-                {`You will get ${utils.formatEther(removeIcebear)} Icebear Tokens and ${round(utils.formatEther(removeCelo))} Eth`}
+                {`You will get ${utils.formatEther(removeIcebear)} ICB and ${round(utils.formatEther(removeCelo))} CELO`}
               </div>
               <button className={styles.button1} onClick={_removeLiquidity}>
                 Remove
@@ -317,23 +330,23 @@ export default function Home() {
             name="dropdown"
             id="dropdown"
             onChange={async () => {
-              setEthSelected(!ethSelected);
+              setCeloSelected(!celoSelected);
               await _getAmountOfTokensReceivedFromSwap(0);
               setSwapAmount("");
             }}
           >
-            <option value="eth">Celo</option>
-            <option value="icebearToken">Icebear Token</option>
+            <option value="celo">Celo</option>
+            <option value="icebearToken">ICB</option>
           </select>
           <br />
           <div className={styles.inputDiv}>
-            {ethSelected
+            {celoSelected
               ? `You will get ${round(utils.formatEther(
                   tokenToBeReceivedAfterSwap
-                ))} Icebear Tokens`
+                ))} ICB`
               : `You will get ${round(utils.formatEther(
                   tokenToBeReceivedAfterSwap
-                ))} Eth`}
+                ))} CELO`}
           </div>
           <button className={styles.button1} onClick={_swapTokens}>
             Swap
@@ -354,7 +367,7 @@ export default function Home() {
         <div>
           <h1 className={styles.title}>Welcome to Icebear Exchange!</h1>
           <div className={styles.description}>
-            Exchange CELO &#60;&#62; Icebear Tokens
+            Exchange CELO &#60;&#62; ICB Tokens
           </div>
           <div>
             <button
@@ -375,6 +388,7 @@ export default function Home() {
             </button>
             <button
               className={styles.button}
+              onClick={_faucet}
             >
               Faucet ICB
             </button>
