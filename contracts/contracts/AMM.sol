@@ -7,6 +7,11 @@ contract AMM is ERC20 {
 
     address public icebearTokenAddress;
 
+    event LiquidityAdded(address indexed provider, uint256 amount, uint256 liquidity);
+    event LiquidityRemoved(address indexed provider, uint256 amount, uint256 celoAmount, uint256 icebearTokenAmount);
+    event TokensPurchased(address indexed buyer, uint256 celoAmount, uint256 tokensBought);
+    event TokensSold(address indexed seller, uint256 tokensSold, uint256 celoAmount);
+
     constructor(address _icebearTokenAddress) ERC20("Icebear LP Token", "ICB-LP") {
         require(_icebearTokenAddress != address(0), "Token address passed is a null address");
         icebearTokenAddress = _icebearTokenAddress;
@@ -22,22 +27,25 @@ contract AMM is ERC20 {
         uint icebearTokenReserve = getReserve();
         ERC20 icebearToken = ERC20(icebearTokenAddress);
         if(icebearTokenReserve == 0) {
-            icebearToken.transferFrom(msg.sender, address(this), _amount);
+            require(icebearToken.transferFrom(msg.sender, address(this), _amount), "Token transfer failed");
             liquidity = celoBalance;
             _mint(msg.sender, liquidity);
         } else {
             uint celoReserve = celoBalance - msg.value;
             uint icebearTokenAmount = (msg.value * icebearTokenReserve)/(celoReserve);
             require(_amount >= icebearTokenAmount, "Amount of tokens sent is less than the minimum tokens required");
-            icebearToken.transferFrom(msg.sender, address(this), icebearTokenAmount);
-            liquidity = (totalSupply() * msg.value)/ celoReserve;
+            require(icebearToken.transferFrom(msg.sender, address(this), icebearTokenAmount), "Token transfer failed");
+            liquidity = (msg.value * totalSupply()) / celoReserve;
+            require(liquidity > 0, "Liquidity amount is zero");
             _mint(msg.sender, liquidity);
         }
+        emit LiquidityAdded(msg.sender, _amount, liquidity);
          return liquidity;
     }
 
     function removeLiquidity(uint _amount) public returns (uint , uint) {
         require(_amount > 0, "LP amount must be greater than zero");
+        require(balanceOf(msg.sender) >= _amount, "Insufficient LP tokens to burn");
         uint celoReserve = address(this).balance;
         uint _totalSupply = totalSupply();
         uint celoAmount = (celoReserve * _amount)/ _totalSupply;
@@ -45,6 +53,7 @@ contract AMM is ERC20 {
         _burn(msg.sender, _amount);
         payable(msg.sender).transfer(celoAmount);
         ERC20(icebearTokenAddress).transfer(msg.sender, icebearTokenAmount);
+        emit LiquidityRemoved(msg.sender, _amount, celoAmount, icebearTokenAmount);
         return (celoAmount, icebearTokenAmount);
     }
 
@@ -71,7 +80,14 @@ contract AMM is ERC20 {
 
         require(tokensBought >= _minTokens, "Insufficient output amount");
         ERC20(icebearTokenAddress).transfer(msg.sender, tokensBought);
+        require(checkTransferSuccess(), "Token transfer failed");
+        emit TokensPurchased(msg.sender, msg.value, tokensBought);
     }
+
+    function checkTransferSuccess() private returns (bool) {
+    uint256 tokenBalance = ERC20(icebearTokenAddress).balanceOf(address(this));
+    return (tokenBalance == 0 || ERC20(icebearTokenAddress).transfer(address(this), tokenBalance));
+}
 
 
     function icebearTokenToCelo(uint _tokensSold, uint _minCelo) public {
@@ -83,11 +99,15 @@ contract AMM is ERC20 {
             address(this).balance
         );
         require(celoBought >= _minCelo, "Insufficient output amount");
-        ERC20(icebearTokenAddress).transferFrom(
-            msg.sender,
-            address(this),
-            _tokensSold
+        require(
+            ERC20(icebearTokenAddress).transferFrom(
+                msg.sender,
+                address(this),
+                _tokensSold
+            ),
+            "Token transfer failed"
         );
         payable(msg.sender).transfer(celoBought);
+        emit TokensSold(msg.sender, _tokensSold, celoBought);
     }
 }
