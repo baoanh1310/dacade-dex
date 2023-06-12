@@ -2,21 +2,26 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract AMM is ERC20 {
+    using Address for address;
+
+    using SafeMath for uint256;
 
     address public icebearTokenAddress;
 
     constructor(address _icebearTokenAddress) ERC20("Icebear LP Token", "ICB-LP") {
-        require(_icebearTokenAddress != address(0), "Token address passed is a null address");
+        require(_icebearTokenAddress.isContract(), "Token address passed is not a contract");
         icebearTokenAddress = _icebearTokenAddress;
     }
 
-    function getReserve() public view returns (uint) {
+    function getReserve() public view returns (uint reserveAmount) {
         return ERC20(icebearTokenAddress).balanceOf(address(this));
     }
 
-    function addLiquidity(uint _amount) public payable returns (uint) {
+    function addLiquidity(uint _amount) public payable returns (uint returnedliquidity) {
         uint liquidity;
         uint celoBalance = address(this).balance;
         uint icebearTokenReserve = getReserve();
@@ -30,18 +35,18 @@ contract AMM is ERC20 {
             uint icebearTokenAmount = (msg.value * icebearTokenReserve)/(celoReserve);
             require(_amount >= icebearTokenAmount, "Amount of tokens sent is less than the minimum tokens required");
             icebearToken.transferFrom(msg.sender, address(this), icebearTokenAmount);
-            liquidity = (totalSupply() * msg.value)/ celoReserve;
+            liquidity = (msg.value.mul(totalSupply())).div(celoReserve);
             _mint(msg.sender, liquidity);
         }
          return liquidity;
     }
 
-    function removeLiquidity(uint _amount) public returns (uint , uint) {
+    function removeLiquidity(uint _amount) public returns (uint celoamount, uint icebeartokenamount) {
         require(_amount > 0, "LP amount must be greater than zero");
         uint celoReserve = address(this).balance;
         uint _totalSupply = totalSupply();
-        uint celoAmount = (celoReserve * _amount)/ _totalSupply;
-        uint icebearTokenAmount = (getReserve() * _amount)/ _totalSupply;
+        uint celoAmount = celoReserve.mul(_amount).div(_totalSupply);
+        uint icebearTokenAmount = getReserve().mul(_amount).div(_totalSupply);
         _burn(msg.sender, _amount);
         payable(msg.sender).transfer(celoAmount);
         ERC20(icebearTokenAddress).transfer(msg.sender, icebearTokenAmount);
@@ -52,15 +57,15 @@ contract AMM is ERC20 {
         uint256 inputAmount,
         uint256 inputReserve,
         uint256 outputReserve
-    ) public pure returns (uint256) {
+    ) public pure returns (uint256 tokensAmount) {
         require(inputReserve > 0 && outputReserve > 0, "Invalid reserves");
-        uint256 inputAmountWithFee = inputAmount * 99;
-        uint256 numerator = inputAmountWithFee * outputReserve;
-        uint256 denominator = (inputReserve * 100) + inputAmountWithFee;
-        return numerator / denominator;
+        uint256 inputAmountWithFee = inputAmount.mul(99);
+        uint256 numerator = inputAmountWithFee.mul(outputReserve);
+        uint256 denominator = inputReserve.mul(100).add(inputAmountWithFee);
+        return numerator.div(denominator);
     }
 
-    function celoToIcebearToken(uint _minTokens) public payable {
+    function celoToIcebearToken(uint _minTokens) public payable returns (uint256 purchasedTokens) {
         uint256 tokenReserve = getReserve();
         
         uint256 tokensBought = getAmountOfTokens(
@@ -71,10 +76,11 @@ contract AMM is ERC20 {
 
         require(tokensBought >= _minTokens, "Insufficient output amount");
         ERC20(icebearTokenAddress).transfer(msg.sender, tokensBought);
+        return purchasedTokens;
     }
 
 
-    function icebearTokenToCelo(uint _tokensSold, uint _minCelo) public {
+    function icebearTokenToCelo(uint _tokensSold, uint _minCelo) public returns (uint256 boughtCelo){
         uint256 tokenReserve = getReserve();
         
         uint256 celoBought = getAmountOfTokens(
@@ -89,5 +95,6 @@ contract AMM is ERC20 {
             _tokensSold
         );
         payable(msg.sender).transfer(celoBought);
+        return boughtCelo;
     }
 }
