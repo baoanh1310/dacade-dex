@@ -9,6 +9,12 @@ contract AMM is ERC20 {
 
     constructor(address _icebearTokenAddress) ERC20("Icebear LP Token", "ICB-LP") {
         require(_icebearTokenAddress != address(0), "Token address passed is a null address");
+
+         // Verify that the provided address is a valid ERC20 token contract
+            ERC20 icebearToken = ERC20(_icebearTokenAddress);
+            require(icebearToken.totalSupply() > 0, "Invalid ERC20 token");
+            
+
         icebearTokenAddress = _icebearTokenAddress;
     }
 
@@ -27,10 +33,11 @@ contract AMM is ERC20 {
             _mint(msg.sender, liquidity);
         } else {
             uint celoReserve = celoBalance - msg.value;
-            uint icebearTokenAmount = (msg.value * icebearTokenReserve)/(celoReserve);
+            uint256 inputAmountWithFee = (_amount * 100) / 99;
+            uint256 icebearTokenAmount = (inputAmountWithFee * icebearTokenReserve) / celoReserve;
             require(_amount >= icebearTokenAmount, "Amount of tokens sent is less than the minimum tokens required");
             icebearToken.transferFrom(msg.sender, address(this), icebearTokenAmount);
-            liquidity = (totalSupply() * msg.value)/ celoReserve;
+            liquidity = (totalSupply() * msg.value) / celoReserve;
             _mint(msg.sender, liquidity);
         }
          return liquidity;
@@ -61,6 +68,8 @@ contract AMM is ERC20 {
     }
 
     function celoToIcebearToken(uint _minTokens) public payable {
+        require(_tokensSold > 0, "Tokens sold must be greater than zero");
+
         uint256 tokenReserve = getReserve();
         
         uint256 tokensBought = getAmountOfTokens(
@@ -75,6 +84,8 @@ contract AMM is ERC20 {
 
 
     function icebearTokenToCelo(uint _tokensSold, uint _minCelo) public {
+        require(_tokensSold > 0, "Tokens sold must be greater than zero");
+
         uint256 tokenReserve = getReserve();
         
         uint256 celoBought = getAmountOfTokens(
